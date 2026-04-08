@@ -9,19 +9,24 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type wshandler struct {
-}
-
 type DataReceiver struct {
 	msgch chan types.OBUData
 	conn  *websocket.Conn
+	prod  DataProducer
 }
 
 func main() {
-	recv := NewDataReceiver()
+	recv, err := NewDataReceiver()
+	if err != nil {
+		log.Fatal(err)
+	}
 	http.HandleFunc("/ws", recv.handleWS)
 	http.ListenAndServe(":30000", nil)
 
+}
+
+func (dr *DataReceiver) produceData(data types.OBUData) error {
+	return dr.prod.ProduceData(data)
 }
 
 func (dr *DataReceiver) handleWS(w http.ResponseWriter, r *http.Request) {
@@ -39,10 +44,21 @@ func (dr *DataReceiver) handleWS(w http.ResponseWriter, r *http.Request) {
 	go dr.wsReceiveLoop()
 }
 
-func NewDataReceiver() *DataReceiver {
+func NewDataReceiver() (*DataReceiver, error) {
+	var (
+		p   DataProducer
+		err error
+	)
+	p, err = NewKafkaProducer()
+	p = NewLogMiddleware(p)
+	if err != nil {
+		return nil, err
+	}
+
 	return &DataReceiver{
 		msgch: make(chan types.OBUData, 128),
-	}
+		prod:  p,
+	}, nil
 }
 
 func (dr *DataReceiver) wsReceiveLoop() {
@@ -53,7 +69,8 @@ func (dr *DataReceiver) wsReceiveLoop() {
 			log.Println("read error :", err)
 			continue
 		}
-		fmt.Printf("Received data from [%d] :: <lat %.2f, long %.2f>", data.OBUID, data.Lat, data.Lon)
-		dr.msgch <- data
+		if err := dr.produceData(data); err != nil {
+			fmt.Println("Kafka Produced Error :", err)
+		}
 	}
 }

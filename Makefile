@@ -5,9 +5,12 @@ obu:
 	./bin/obu
 
 receiver:
-	@go build -o bin/receiver data_receiver/main.go
+	@go build -o bin/receiver ./data_receiver
 	./bin/receiver
 
+calc:
+	@go build -o bin/calc ./dist-calc
+	./bin/calc
 
 
 clean:
