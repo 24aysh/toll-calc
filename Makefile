@@ -1,4 +1,4 @@
-.PHONY: obu clean
+.PHONY: obu clean invoicer
 
 obu:
 	@go build -o bin/obu obu/main.go
@@ -12,6 +12,9 @@ calc:
 	@go build -o bin/calc ./dist-calc
 	@./bin/calc
 
+invoicer:
+	@go build -o bin/invoice ./invoicer
+	@./bin/invoice
 
 clean:
 	@rm -rf bin data
