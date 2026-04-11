@@ -2,15 +2,15 @@
 
 obu:
 	@go build -o bin/obu obu/main.go
-	./bin/obu
+	@./bin/obu
 
 receiver:
 	@go build -o bin/receiver ./data_receiver
-	./bin/receiver
+	@./bin/receiver
 
 calc:
 	@go build -o bin/calc ./dist-calc
-	./bin/calc
+	@./bin/calc
 
 
 clean:
