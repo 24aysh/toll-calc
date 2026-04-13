@@ -13,7 +13,7 @@ calc:
 	@./bin/calc
 
 invoicer:
-	@go build -o bin/invoice ./invoicer
+	@go build -o bin/invoice ./aggregator
 	@./bin/invoice
 
 clean:
