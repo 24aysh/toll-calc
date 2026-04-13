@@ -2,7 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"time"
 
+	"github.com/24aysh/toll-calc/aggregator/client"
 	"github.com/24aysh/toll-calc/types"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/sirupsen/logrus"
@@ -10,11 +12,12 @@ import (
 
 type KafkaConsumer struct {
 	consumer    *kafka.Consumer
+	aggClient   *client.Client
 	isRunning   bool
 	calcService CalculatorServicer
 }
 
-func NewKafkaConsumer(topic string, svc CalculatorServicer) (*KafkaConsumer, error) {
+func NewKafkaConsumer(topic string, svc CalculatorServicer, ac *client.Client) (*KafkaConsumer, error) {
 	c, err := kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers": "localhost",
 		"group.id":          "myGroup",
@@ -33,6 +36,7 @@ func NewKafkaConsumer(topic string, svc CalculatorServicer) (*KafkaConsumer, err
 	return &KafkaConsumer{
 		consumer:    c,
 		calcService: svc,
+		aggClient:   ac,
 	}, nil
 }
 
@@ -54,9 +58,18 @@ func (c *KafkaConsumer) readMessageLoop() {
 			logrus.Errorf("JSON Unmarshal Error: %s", err)
 			continue
 		}
-		_, err = c.calcService.CalculateDist(data)
+		dist, err := c.calcService.CalculateDist(data)
 		if err != nil {
 			logrus.Errorf("Dist Service error: %s", err)
+			continue
+		}
+		req := types.Distance{
+			Value: dist,
+			OBUID: data.OBUID,
+			Unix:  time.Now().UnixNano(),
+		}
+		if err := c.aggClient.AggregateInvoice(req); err != nil {
+			logrus.Errorf("Client Error :%s", err)
 			continue
 		}
 	}
