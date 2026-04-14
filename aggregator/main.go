@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"net/http"
+	"strconv"
 
 	"github.com/24aysh/toll-calc/types"
 )
@@ -20,7 +21,38 @@ func main() {
 
 func makeHTTPTransport(listenAddr string, svc Aggregator) {
 	http.HandleFunc("/agg", handleAggregate(svc))
+	http.HandleFunc("/invoice", handleGetInvoice(svc))
 	http.ListenAndServe(listenAddr, nil)
+}
+
+func handleGetInvoice(svc Aggregator) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		values, ok := r.URL.Query()["obu"]
+		if !ok {
+			writeJson(w, http.StatusBadRequest, map[string]string{
+				"Error": "Missing OBUID",
+			})
+			return
+		}
+		obuID, err := strconv.Atoi(values[0])
+		if err != nil {
+			writeJson(w, http.StatusBadRequest, map[string]string{
+				"Error": "Invalid OBU Id",
+			})
+		}
+		dist, err := svc.GetDistance(obuID)
+		if err != nil {
+			writeJson(w, http.StatusNoContent, map[string]string{
+				"Error": "Data not found for this OBU",
+			})
+			return
+		}
+		writeJson(w,http.StatusOK,map[string]any{
+			
+		})
+
+	}
+
 }
 
 func handleAggregate(svc Aggregator) http.HandlerFunc {
