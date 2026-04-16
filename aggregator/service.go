@@ -2,9 +2,11 @@ package main
 
 import "github.com/24aysh/toll-calc/types"
 
+const basePrice = 3.15
+
 type Aggregator interface {
 	AggregateDistance(types.Distance) error
-	GetDistance(int) (float64, error)
+	CalculateInvoice(int) (*types.Invoice, error)
 }
 
 type Storer interface {
@@ -21,8 +23,17 @@ func (i *InvoiceAggregator) AggregateDistance(dist types.Distance) error {
 
 }
 
-func (i *InvoiceAggregator) GetDistance(id int) (float64, error) {
-	return i.store.Get(id)
+func (i *InvoiceAggregator) CalculateInvoice(id int) (*types.Invoice, error) {
+	dist, err := i.store.Get(id)
+	if err != nil {
+		return nil, err
+	}
+	inv := &types.Invoice{
+		OBUID:     id,
+		TotalDist: dist,
+		Amount:    dist * basePrice,
+	}
+	return inv, nil
 }
 
 func NewInvoiceAggregator(store Storer) Aggregator {

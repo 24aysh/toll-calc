@@ -32,7 +32,7 @@ func (c *Client) AggregateInvoice(d types.Distance) error {
 	if err != nil {
 		return err
 	}
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusAccepted {
 		return fmt.Errorf("The Service returned %d", resp.StatusCode)
 	}
 	return nil

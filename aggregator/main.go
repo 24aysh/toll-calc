@@ -3,19 +3,24 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
+	"net"
 	"net/http"
 	"strconv"
 
 	"github.com/24aysh/toll-calc/types"
+	"google.golang.org/grpc"
 )
 
 func main() {
-	listenAddr := flag.String("listenaddr", ":3000", "The listen address of HTTP")
+	HttpAddr := flag.String("Httpaddr", ":3000", "The Http address of HTTP")
+	GrpcAddr := flag.String("Grpcaddr", ":3001", "The Grpc address of GRPC")
 	flag.Parse()
 	store := NewMemoryStore()
 	svc := NewInvoiceAggregator(store)
 	svc = NewLogMiddleware(svc)
-	makeHTTPTransport(*listenAddr, svc)
+	go makeGRPCTransport(*GrpcAddr, svc)
+	makeHTTPTransport(*HttpAddr, svc)
 
 }
 
@@ -23,6 +28,23 @@ func makeHTTPTransport(listenAddr string, svc Aggregator) {
 	http.HandleFunc("/agg", handleAggregate(svc))
 	http.HandleFunc("/invoice", handleGetInvoice(svc))
 	http.ListenAndServe(listenAddr, nil)
+}
+
+func makeGRPCTransport(listenAddr string, svc Aggregator) error {
+	fmt.Println("GRPC Transport Running")
+	// make a TCP listener
+	l, err := net.Listen("TCP", listenAddr)
+
+	if err != nil {
+		return err
+	}
+	defer l.Close()
+	server := grpc.NewServer([]grpc.ServerOption{}...)
+
+	types.RegisterAggregatorServer(server, NewGRPCAggregatorServer(svc))
+
+	return server.Serve(l)
+
 }
 
 func handleGetInvoice(svc Aggregator) http.HandlerFunc {
@@ -40,17 +62,15 @@ func handleGetInvoice(svc Aggregator) http.HandlerFunc {
 				"Error": "Invalid OBU Id",
 			})
 		}
-		dist, err := svc.GetDistance(obuID)
+		invoice, err := svc.CalculateInvoice(obuID)
 		if err != nil {
-			writeJson(w, http.StatusNoContent, map[string]string{
-				"Error": "Data not found for this OBU",
+			writeJson(w, http.StatusInternalServerError, map[string]string{
+				"Error": err.Error(),
 			})
 			return
 		}
-		writeJson(w,http.StatusOK,map[string]any{
-			
-		})
 
+		writeJson(w, http.StatusOK, invoice)
 	}
 
 }

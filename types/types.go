@@ -15,5 +15,5 @@ type Distance struct {
 type Invoice struct {
 	OBUID     int     `json:"obuid"`
 	TotalDist float64 `json:"totaldist"`
-	Amount    int     `json:"amount"`
+	Amount    float64 `json:"amount"`
 }

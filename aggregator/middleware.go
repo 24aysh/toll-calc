@@ -27,12 +27,12 @@ func (l *LogMiddleware) AggregateDistance(d types.Distance) (err error) {
 	return l.next.AggregateDistance(d)
 }
 
-func (l *LogMiddleware) GetDistance(id int) (float64, error) {
+func (l *LogMiddleware) CalculateInvoice(id int) (*types.Invoice, error) {
 	defer func(start time.Time) {
 		logrus.WithFields(logrus.Fields{
-			"Took":              time.Since(start),
-			"Fetch dist for id": id,
+			"Took":                   time.Since(start),
+			"Calculated Invoice for": id,
 		}).Info()
 	}(time.Now())
-	return l.next.GetDistance(id)
+	return  l.next.CalculateInvoice(id)
 }
