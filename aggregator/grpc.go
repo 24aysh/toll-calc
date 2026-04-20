@@ -1,6 +1,10 @@
 package main
 
-import "github.com/24aysh/toll-calc/types"
+import (
+	"context"
+
+	"github.com/24aysh/toll-calc/types"
+)
 
 type GRPCAggregatorServer struct {
 	types.UnimplementedAggregatorServer
@@ -13,12 +17,12 @@ func NewGRPCAggregatorServer(svc Aggregator) *GRPCAggregatorServer {
 	}
 }
 
-func (s *GRPCAggregatorServer) AggregateRequest(req types.AggregateRequest) error {
+func (s *GRPCAggregatorServer) Aggregate(ctx context.Context, req *types.AggregateRequest) (*types.None, error) {
 	dist := types.Distance{
 		OBUID: int(req.ObuID),
 		Value: req.Value,
 		Unix:  req.Unix,
 	}
-	return s.svc.AggregateDistance(dist)
+	return &types.None{}, s.svc.AggregateDistance(dist)
 
 }

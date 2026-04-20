@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -9,26 +10,26 @@ import (
 	"github.com/24aysh/toll-calc/types"
 )
 
-type Client struct {
+type HttpClient struct {
 	Endpoint string
 }
 
-func NewClient(endpoint string) *Client {
-	return &Client{
+func NewHttpClient(endpoint string) *HttpClient {
+	return &HttpClient{
 		Endpoint: endpoint,
 	}
 }
 
-func (c *Client) AggregateInvoice(d types.Distance) error {
-	b, err := json.Marshal(d)
+func (c *HttpClient) Aggregate(ctx context.Context, req *types.AggregateRequest) error {
+	b, err := json.Marshal(req)
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest("POST", c.Endpoint, bytes.NewReader(b))
+	r, err := http.NewRequest("POST", c.Endpoint, bytes.NewReader(b))
 	if err != nil {
 		return err
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(r)
 	if err != nil {
 		return err
 	}

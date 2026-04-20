@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/24aysh/toll-calc/types"
 	"google.golang.org/grpc"
@@ -19,21 +21,24 @@ func main() {
 	store := NewMemoryStore()
 	svc := NewInvoiceAggregator(store)
 	svc = NewLogMiddleware(svc)
-	go makeGRPCTransport(*GrpcAddr, svc)
-	makeHTTPTransport(*HttpAddr, svc)
+	go func() {
+		log.Fatal(makeGRPCTransport(*GrpcAddr, svc))
+	}()
+	time.Sleep(time.Second * 2)
+	log.Fatal(makeHTTPTransport(*HttpAddr, svc))
 
 }
 
-func makeHTTPTransport(listenAddr string, svc Aggregator) {
+func makeHTTPTransport(listenAddr string, svc Aggregator) error {
 	http.HandleFunc("/agg", handleAggregate(svc))
 	http.HandleFunc("/invoice", handleGetInvoice(svc))
-	http.ListenAndServe(listenAddr, nil)
+	return http.ListenAndServe(listenAddr, nil)
 }
 
 func makeGRPCTransport(listenAddr string, svc Aggregator) error {
 	fmt.Println("GRPC Transport Running")
 	// make a TCP listener
-	l, err := net.Listen("TCP", listenAddr)
+	l, err := net.Listen("tcp", listenAddr)
 
 	if err != nil {
 		return err
