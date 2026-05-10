@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"net"
 
 	"github.com/24aysh/toll-calc/types"
+	"google.golang.org/grpc"
 )
 
 type GRPCAggregatorServer struct {
@@ -24,5 +27,22 @@ func (s *GRPCAggregatorServer) Aggregate(ctx context.Context, req *types.Aggrega
 		Unix:  req.Unix,
 	}
 	return &types.None{}, s.svc.AggregateDistance(dist)
+
+}
+
+func makeGRPCTransport(listenAddr string, svc Aggregator) error {
+	fmt.Println("GRPC Transport Running")
+	// make a TCP listener
+	l, err := net.Listen("tcp", listenAddr)
+
+	if err != nil {
+		return err
+	}
+	defer l.Close()
+	server := grpc.NewServer([]grpc.ServerOption{}...)
+
+	types.RegisterAggregatorServer(server, NewGRPCAggregatorServer(svc))
+
+	return server.Serve(l)
 
 }

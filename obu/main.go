@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"math"
 	"math/rand"
 	"time"
 
@@ -16,7 +15,7 @@ const sendInterval = 5
 func genOBUIDS(n int) []int {
 	ids := make([]int, n)
 	for i := 0; i < n; i++ {
-		ids[i] = rand.Intn(math.MaxInt)
+		ids[i] = rand.Intn(100000)
 	}
 	return ids
 }

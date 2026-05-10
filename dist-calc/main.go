@@ -11,7 +11,7 @@ type DistanceCalc struct {
 
 const (
 	kafkaTopic         = "obudata"
-	aggregatorEndpoint = "http://localhost:3000/agg"
+	aggregatorEndpoint = "http://localhost:3000"
 )
 
 func main() {

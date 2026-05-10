@@ -1,5 +1,9 @@
 .PHONY: obu clean aggregator
 
+gate:
+	@go build -o bin/gate ./gateway
+	@./bin/gate
+
 obu:
 	@go build -o bin/obu obu/main.go
 	@./bin/obu
