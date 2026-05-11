@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	HttpAddr := flag.String("Httpaddr", ":3000", "The Http address of HTTP")
+	HttpAddr := flag.String("Httpaddr", ":4000", "The Http address of HTTP")
 	GrpcAddr := flag.String("Grpcaddr", ":3001", "The Grpc address of GRPC")
 	flag.Parse()
 	store := NewMemoryStore()
