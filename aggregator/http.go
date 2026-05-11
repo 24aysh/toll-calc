@@ -32,6 +32,7 @@ func handleGetInvoice(svc Aggregator) http.HandlerFunc {
 			writeJson(w, http.StatusBadRequest, map[string]string{
 				"Error": "Invalid OBU Id",
 			})
+			return
 		}
 		invoice, err := svc.CalculateInvoice(obuID)
 		if err != nil {

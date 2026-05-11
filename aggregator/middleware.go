@@ -93,7 +93,7 @@ func (m *MetricsMiddleWare) CalculateInvoice(id int) (*types.Invoice, error) {
 		m.reqCounterCalc.Inc()
 
 	}(time.Now())
-	return m.CalculateInvoice(id)
+	return m.next.CalculateInvoice(id)
 }
 
 func (m *MetricsMiddleWare) PushMetrics(start time.Time, err error) {
