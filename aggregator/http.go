@@ -68,7 +68,7 @@ func handleAggregate(svc Aggregator) http.HandlerFunc {
 }
 
 func writeJson(r http.ResponseWriter, status int, v any) error {
+	r.Header().Set("Content-Type", "application/json")
 	r.WriteHeader(status)
-	r.Header().Add("Content-Type", "application/json")
 	return json.NewEncoder(r).Encode(v)
 }

@@ -50,10 +50,10 @@ func NewDataReceiver() (*DataReceiver, error) {
 		err error
 	)
 	p, err = NewKafkaProducer()
-	p = NewLogMiddleware(p)
 	if err != nil {
 		return nil, err
 	}
+	p = NewLogMiddleware(p)
 
 	return &DataReceiver{
 		msgch: make(chan types.OBUData, 128),
@@ -67,7 +67,7 @@ func (dr *DataReceiver) wsReceiveLoop() {
 		var data types.OBUData
 		if err := dr.conn.ReadJSON(&data); err != nil {
 			log.Println("read error :", err)
-			continue
+			return
 		}
 		if err := dr.produceData(data); err != nil {
 			fmt.Println("Kafka Produced Error :", err)

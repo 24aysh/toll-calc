@@ -30,7 +30,7 @@ func (p *KafkaProducer) ProduceData(data types.OBUData) error {
 			Partition: kafka.PartitionAny},
 		Value: b,
 	}, nil)
-	return nil
+	return err
 }
 
 func NewKafkaProducer() (DataProducer, error) {
