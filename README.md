@@ -1,54 +1,80 @@
 # Toll Calculator
 
-A distributed toll calculation system built in Go using a microservices architecture.
+A distributed toll calculation system that processes real-time vehicle GPS coordinates via Apache Kafka and calculates toll invoices using a microservices architecture communicating over gRPC and HTTP REST APIs.
 
 ## Architecture
 
-```
-OBU Simulator → Data Receiver → Kafka → Distance Calculator → Aggregator → Gateway → Client
-                                                   (gRPC)          (HTTP)
-```
-
-| Service | Description |
-|---|---|
-| `obu` | Simulates On-Board Units sending GPS coordinates |
-| `data_receiver` | Receives OBU data and publishes to Kafka |
-| `dist-calc` | Consumes Kafka events and calculates distance |
-| `aggregator` | Aggregates distances and calculates invoices |
-| `gateway` | HTTP API gateway for client-facing endpoints |
-
-## Tech Stack
-
-- **Language:** Go
-- **Transport:** gRPC (inter-service) + HTTP REST (client-facing)
-- **Message Broker:** Apache Kafka
-- **Monitoring:** Prometheus (request counters, error rates, latency histograms)
-- **Serialization:** Protocol Buffers
-
-## Running Locally
-
-Start Kafka:
-```bash
-docker-compose up -d
+```mermaid
+flowchart LR
+    OBU[OBU Simulator] -->|GPS Coordinates| Receiver[Data Receiver]
+    Receiver -->|Produce Events| Kafka[(Apache Kafka)]
+    Kafka -->|Consume Events| Calc[Distance Calculator]
+    Calc -->|gRPC| Aggregator[Aggregator]
+    Gateway[API Gateway] -->|HTTP/REST| Aggregator
+    Client[Client] -->|HTTP/REST| Gateway
+    
+    Prometheus[(Prometheus)] -.->|Scrape Metrics| Calc
+    Prometheus -.->|Scrape Metrics| Aggregator
+    Grafana[Grafana] -->|Query| Prometheus
 ```
 
-Run each service in a separate terminal:
-```bash
-make aggregator
-make calc
-make receiver
-make gate
-make obu
-```
+### Components
 
-## API
+| Service | Description | Integration |
+|---|---|---|
+| `obu` | Simulates On-Board Units sending vehicle GPS coordinates. | N/A |
+| `data_receiver` | Receives incoming OBU data and publishes it to the message broker. | HTTP |
+| `dist-calc` | Consumes Kafka events to compute the distance traveled. | Kafka |
+| `aggregator` | Aggregates computed distances and calculates total invoices. | gRPC |
+| `gateway` | API gateway exposing client-facing endpoints. | HTTP/REST |
+| `prometheus` | Scrapes and stores application metrics. | HTTP |
+| `grafana` | Visualizes metrics data via interactive dashboards. | HTTP |
 
-```
-GET /invoice?obu=<id>    # Get toll invoice for an OBU
-```
+## Technical Stack
 
-## Generate Protobuf
+- **Core:** Go
+- **Protocols:** gRPC for internal inter-service communication, HTTP/REST for client-facing APIs
+- **Message Broker:** Apache Kafka for real-time data streaming
+- **Observability:** Prometheus for monitoring application metrics (request counters, error rates, latency) and Grafana for visual dashboards
+- **Serialization:** Protocol Buffers for efficient data transport
 
-```bash
-make proto
+## Local Setup
+
+### Prerequisites
+- Docker and Docker Compose
+- Go 1.20 or higher
+- Make
+
+### Installation
+
+1. **Start Infrastructure:**
+   Initialize Apache Kafka, Prometheus, Grafana, and related dependencies via Docker.
+   ```bash
+   docker-compose up -d
+   ```
+
+2. **Generate Protocol Buffers:**
+   Compile the gRPC and Protobuf definitions.
+   ```bash
+   make proto
+   ```
+
+3. **Run Services:**
+   Start each microservice. It is recommended to run each in a separate terminal instance.
+   ```bash
+   make aggregator
+   make calc
+   make receiver
+   make gate
+   make obu
+   ```
+
+## API Reference
+
+### Get Invoice
+Retrieves the total toll invoice for a specific On-Board Unit.
+
+**Request:**
+```http
+GET /invoice?obu=<obu_id>
 ```
