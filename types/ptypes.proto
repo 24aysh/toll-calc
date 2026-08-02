@@ -17,5 +17,6 @@ message GetInvoiceRequest {
 message AggregateRequest {
     int32 ObuID = 1;
     double Value = 2;
-    int64 Unix = 3;
+    int64 ProducedAtUnixNano = 3;
+    string EventID = 4;
 }

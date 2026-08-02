@@ -1,0 +1,8 @@
+.git
+.agents
+.codex
+bin
+data
+specs
+*.md
+**/*_test.go

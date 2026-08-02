@@ -1,10 +1,20 @@
+name: tollify
+
+x-service-build: &service-build
+  context: .
+  dockerfile: Dockerfile
+
+x-service-defaults: &service-defaults
+  restart: unless-stopped
+  init: true
+
 services:
   broker:
+    <<: *service-defaults
     image: apache/kafka:latest
     hostname: broker
-    container_name: broker
     ports:
-      - 9092:9092
+      - "127.0.0.1:9092:9092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT
@@ -19,5 +29,135 @@ services:
       KAFKA_LISTENERS: PLAINTEXT://broker:29092,CONTROLLER://broker:29093,PLAINTEXT_HOST://0.0.0.0:9092
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
       CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "/opt/kafka/bin/kafka-topics.sh", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  aggregator:
+    <<: *service-defaults
+    build:
+      <<: *service-build
+      args:
+        SERVICE: aggregator
+    ports:
+      - "127.0.0.1:4000:4000"
+      - "127.0.0.1:3001:3001"
+    environment:
+      AGGREGATOR_HTTP_LISTEN_ADDR: :4000
+      AGGREGATOR_GRPC_LISTEN_ADDR: :3001
+
+  receiver:
+    <<: *service-defaults
+    build:
+      <<: *service-build
+      args:
+        SERVICE: data_receiver
+    depends_on:
+      broker:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:30000:30000"
+    environment:
+      RECEIVER_HTTP_ADDR: :30000
+      KAFKA_BROKERS: broker:29092
+      KAFKA_TOPIC: obudata
+
+  calculator:
+    <<: *service-defaults
+    build:
+      <<: *service-build
+      args:
+        SERVICE: dist-calc
+    depends_on:
+      broker:
+        condition: service_healthy
+      aggregator:
+        condition: service_started
+    ports:
+      - "127.0.0.1:9102:9102"
+    environment:
+      KAFKA_BROKERS: broker:29092
+      KAFKA_TOPIC: obudata
+      KAFKA_GROUP_ID: tollify-distance-calculator
+      AGGREGATOR_PROTOCOL: ${AGGREGATOR_PROTOCOL:-grpc}
+      AGGREGATOR_HTTP_ADDR: http://aggregator:4000
+      AGGREGATOR_GRPC_ADDR: aggregator:3001
+      AGGREGATOR_REQUEST_TIMEOUT: ${AGGREGATOR_REQUEST_TIMEOUT:-2s}
+      CALCULATOR_METRICS_ADDR: :9102
+
+  gateway:
+    <<: *service-defaults
+    build:
+      <<: *service-build
+      args:
+        SERVICE: gateway
+    depends_on:
+      aggregator:
+        condition: service_started
+    ports:
+      - "127.0.0.1:6000:6000"
+    environment:
+      AGGREGATOR_HTTP_ADDR: http://aggregator:4000
+
+  obu:
+    <<: *service-defaults
+    build:
+      <<: *service-build
+      args:
+        SERVICE: obu
+    depends_on:
+      receiver:
+        condition: service_started
+    ports:
+      - "127.0.0.1:9100:9100"
+    environment:
+      RECEIVER_WS_ADDR: ws://receiver:30000/ws
+      OBU_COUNT: ${OBU_COUNT:-20}
+      OBU_EVENT_RATE: ${OBU_EVENT_RATE:-4}
+      OBU_CONNECTIONS: ${OBU_CONNECTIONS:-1}
+      OBU_TEST_DURATION: ${OBU_TEST_DURATION:-0s}
+      OBU_PAYLOAD_BYTES: ${OBU_PAYLOAD_BYTES:-0}
+      OBU_LOAD_MODE: ${OBU_LOAD_MODE:-fixed}
+      OBU_RANDOM_SEED: ${OBU_RANDOM_SEED:-1}
+      OBU_RAMP_SCHEDULE: ${OBU_RAMP_SCHEDULE:-}
+      OBU_METRICS_ADDR: :9100
+
+  prometheus:
+    <<: *service-defaults
+    image: prom/prometheus:latest
+    depends_on:
+      - aggregator
+      - receiver
+      - calculator
+      - obu
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+
+  grafana:
+    <<: *service-defaults
+    image: grafana/grafana:latest
+    depends_on:
+      - prometheus
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+
+volumes:
+  kafka_data:
+  prometheus_data:
+  grafana_data:
