@@ -13,7 +13,7 @@ type LogMiddleware struct {
 
 func (l *LogMiddleware) CalculateDist(data types.OBUData) (dist float64, err error) {
 	defer func(start time.Time) {
-		logrus.WithFields(logrus.Fields{ 
+		logrus.WithFields(logrus.Fields{
 			"Took":       time.Since(start),
 			"Total Dist": dist,
 			"Error":      err,

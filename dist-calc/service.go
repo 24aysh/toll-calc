@@ -2,6 +2,7 @@ package main
 
 import (
 	"math"
+	"sync"
 
 	"github.com/24aysh/toll-calc/types"
 )
@@ -9,20 +10,41 @@ import (
 type CalculatorServicer interface {
 	CalculateDist(types.OBUData) (float64, error)
 }
+
+type Point struct {
+	Lat float64
+	Lon float64
+}
+
 type CalcService struct {
-	prevPoint []float64
+	mu         sync.Mutex
+	prevPoints map[int]Point
+	results    map[string]float64
 }
 
 func NewCalcService() CalculatorServicer {
-	return &CalcService{}
+	return &CalcService{
+		prevPoints: make(map[int]Point),
+		results:    make(map[string]float64),
+	}
 }
 
 func (s *CalcService) CalculateDist(data types.OBUData) (float64, error) {
-	dist := 0.0
-	if len(s.prevPoint) > 0 {
-		dist = calcDist(s.prevPoint[0], s.prevPoint[1], data.Lat, data.Lon)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if data.EventID != "" {
+		if dist, ok := s.results[data.EventID]; ok {
+			return dist, nil
+		}
 	}
-	s.prevPoint = []float64{data.Lat, data.Lon}
+	dist := 0.0
+	if previous, ok := s.prevPoints[data.OBUID]; ok {
+		dist = calcDist(previous.Lat, previous.Lon, data.Lat, data.Lon)
+	}
+	s.prevPoints[data.OBUID] = Point{Lat: data.Lat, Lon: data.Lon}
+	if data.EventID != "" {
+		s.results[data.EventID] = dist
+	}
 	return dist, nil
 }
 func calcDist(x1, y1, x2, y2 float64) float64 {

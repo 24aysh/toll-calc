@@ -1,0 +1,20 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: tollify-aggregator
+    static_configs:
+      - targets: ["aggregator:4000"]
+
+  - job_name: tollify-receiver
+    static_configs:
+      - targets: ["receiver:30000"]
+
+  - job_name: tollify-calculator
+    static_configs:
+      - targets: ["calculator:9102"]
+
+  - job_name: tollify-obu
+    static_configs:
+      - targets: ["obu:9100"]
