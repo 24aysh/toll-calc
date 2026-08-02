@@ -15,9 +15,10 @@ func main() {
 		log.Fatal(err)
 	}
 	if err := c.Aggregate(context.Background(), &types.AggregateRequest{
-		ObuID: 1,
-		Value: 12.3,
-		Unix:  time.Now().UnixNano(),
+		ObuID:              1,
+		Value:              12.3,
+		EventID:            "manual-test",
+		ProducedAtUnixNano: time.Now().UnixNano(),
 	}); err != nil {
 		log.Fatal(err)
 	}
