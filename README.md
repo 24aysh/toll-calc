@@ -149,6 +149,22 @@ origins are accepted by default.
 
 ## Load generation
 
+Run the two latency benchmarks and write the same two tables to
+`benchmark_report.md`:
+
+```bash
+./benchmark.sh
+```
+
+The defaults compare 5,000 HTTP and gRPC calls at concurrency 20, then run the
+complete event pipeline at 100, 500, and 1,000 events/second for five seconds
+per load. Short environment overrides are available when needed:
+
+```bash
+BENCHMARK_REQUESTS=1000 BENCHMARK_CONCURRENCY=10 \
+BENCHMARK_LOADS=50,100 BENCHMARK_DURATION=3s ./benchmark.sh
+```
+
 The OBU executable supports fixed-arrival-rate and maximum-throughput tests. A
 finite fixed-rate example is:
 

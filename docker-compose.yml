@@ -67,7 +67,7 @@ services:
     environment:
       RECEIVER_HTTP_ADDR: :30000
       KAFKA_BROKERS: broker:29092
-      KAFKA_TOPIC: obudata
+      KAFKA_TOPIC: ${KAFKA_TOPIC:-obudata}
 
   calculator:
     <<: *service-defaults
@@ -84,8 +84,8 @@ services:
       - "127.0.0.1:9102:9102"
     environment:
       KAFKA_BROKERS: broker:29092
-      KAFKA_TOPIC: obudata
-      KAFKA_GROUP_ID: tollify-distance-calculator
+      KAFKA_TOPIC: ${KAFKA_TOPIC:-obudata}
+      KAFKA_GROUP_ID: ${KAFKA_GROUP_ID:-tollify-distance-calculator}
       AGGREGATOR_PROTOCOL: ${AGGREGATOR_PROTOCOL:-grpc}
       AGGREGATOR_HTTP_ADDR: http://aggregator:4000
       AGGREGATOR_GRPC_ADDR: aggregator:3001
